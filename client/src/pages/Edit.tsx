@@ -1,11 +1,9 @@
-import SideBar from "../components/SideBar";
 import EditProfile from "../components/EditProfile";
 import { styled } from "styled-components";
 
 function Edit() {
   return (
     <Wrapper>
-      <SideBar />
       <EditProfile />
     </Wrapper>
   );

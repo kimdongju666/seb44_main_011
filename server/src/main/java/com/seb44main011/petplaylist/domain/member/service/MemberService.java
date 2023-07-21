@@ -3,13 +3,15 @@ package com.seb44main011.petplaylist.domain.member.service;
 import com.seb44main011.petplaylist.domain.member.dto.MemberDto;
 import com.seb44main011.petplaylist.domain.member.entity.Member;
 import com.seb44main011.petplaylist.domain.member.repository.MemberRepository;
-import com.seb44main011.petplaylist.domain.playlist.entity.entityTable.PersonalPlayList;
+import com.seb44main011.petplaylist.domain.music.service.storageService.S3Service;
 import com.seb44main011.petplaylist.global.error.BusinessLogicException;
 import com.seb44main011.petplaylist.global.error.ExceptionCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -24,21 +26,28 @@ public class MemberService {
         verifyExistsEmail(member.getEmail());
         String passwordEncode = passwordEncoder.encode(member.getPassword());
         member.updatePassword(passwordEncode);
-        member.updatePersonalPlayList(PersonalPlayList.builder().member(member).build());
-
 
         return memberRepository.save(member);
     }
 
     public Member updateMember(long memberId, MemberDto.Patch patchMember) {
-        Member findMember = findVerifiedMember(memberId);
-        isMemberActive(findMember);
+        Member foundMember = findMember(memberId);
         Optional.ofNullable(patchMember.getName())
-                .ifPresent(findMember::updateName);
+                .ifPresent(foundMember::updateName);
         Optional.ofNullable(patchMember.getProfile())
-                .ifPresent(findMember::updateProfile);
+                .ifPresent(foundMember::updateProfile);
 
-        return memberRepository.save(findMember);
+        return memberRepository.save(foundMember);
+    }
+
+    public Member findByMemberFromEmail(String email) {
+        Optional<Member> member = memberRepository.findByEmail(email);
+        Member findMember = member.orElseThrow(
+                () -> new BusinessLogicException(ExceptionCode.MEMBER_NOT_FOUND)
+        );
+        isMemberActive(findMember);
+
+        return findMember;
     }
 
     public Member findMember(long memberId) {
@@ -54,8 +63,7 @@ public class MemberService {
         if (matchPassword) {
             foundMember.updateStatus(Member.Status.MEMBER_QUIT);
             memberRepository.save(foundMember);
-        }
-        else {
+        } else {
             throw new BusinessLogicException(ExceptionCode.PASSWORD_MISMATCH);
         }
     }
@@ -79,4 +87,11 @@ public class MemberService {
         return findMember.orElseThrow(
                 () -> new BusinessLogicException(ExceptionCode.MEMBER_NOT_FOUND));
     }
+
+//    public void uploadMemberProfileImage(@RequestPart MultipartFile profileImage) {
+//        Member byEmail = memberRepository.findByEmail(email).orElseThrow(() -> new BusinessLogicException(ExceptionCode.MEMBER_NOT_FOUND));
+//        Member targetMember = findMember(byEmail.getMemberId());
+//        targetMember.setProfile(profileImage.getOriginalFilename());
+//        memberRepository.save(targetMember);
+//    }
 }

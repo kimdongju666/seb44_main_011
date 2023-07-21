@@ -1,16 +1,99 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { styled } from "styled-components";
 import UserInfo from "../assets/imgs/UserInfo.png";
+import { useLocation, useNavigate } from "react-router-dom";
+import ImageModal from "./ImageModal";
+import axios from "axios";
+import { api } from "../utils/Url";
 
 function EditProfile() {
+  const movePage = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
+  // const [selectedImage, setSelectedImage] = useState(UserInfo);
+  const [selectedImage, setSelectedImage] = useState<string>("");
+
+  const [nickname, setNickname] = useState("");
+  const navigate = useNavigate();
+
+  function goMypage() {
+    movePage("/mypage");
+  }
+
+  const showModal = () => {
+    setModalOpen(true);
+  };
+
+  useEffect(() => {
+    // 컴포넌트가 마운트될 때에만 실행되도록 useEffect를 사용하여 nickname 값을 localStorage에서 불러옵니다.
+    const storedImage = localStorage.getItem("selectedImage");
+    if (storedImage) {
+      setSelectedImage(storedImage);
+    }
+  }, []);
+
+  // const handleProfileSave = () => {
+  //   // 여기에서 선택된 이미지(selectedImage)와 입력된 닉네임(nickname)을 프로필 정보로 저장하고 서버에 업데이트하는 로직을 추가할 수 있습니다.
+  //   console.log("프로필 이미지 저장:", selectedImage);
+  //   console.log("닉네임 저장:", nickname);
+
+  //   // Store selectedImage and nickname in localStorage
+  //   localStorage.setItem("selectedImage", selectedImage);
+  //   localStorage.setItem("nickname", nickname);
+
+  //   setModalOpen(false); // 저장 후 모닫 닫기
+  //   navigate("/mypage", { state: { selectedImage, nickname } });
+  // };
+  const handleProfileSave = async () => {
+    // 여기에서 선택된 이미지(selectedImage)와 입력된 닉네임(nickname)을 프로필 정보로 저장하고 서버에 업데이트하는 로직을 추가할 수 있습니다.
+    console.log("프로필 이미지 저장:", selectedImage);
+    console.log("닉네임 저장:", nickname);
+
+    // Store selectedImage and nickname in localStorage
+    localStorage.setItem("selectedImage", selectedImage);
+    localStorage.setItem("nickname", nickname);
+
+    try {
+      // Send the data to the server using Axios PATCH request
+      const memberId = localStorage.getItem("memberId"); // Replace {member-id} with the actual member ID
+      await api.patch(`/members/${memberId}`, {
+        name: nickname,
+        profile: selectedImage,
+      });
+
+      setModalOpen(false); // 저장 후 모달 닫기
+      navigate("/mypage", { state: { selectedImage, nickname } });
+    } catch (error) {
+      console.error("Error while updating profile:", error);
+      // Handle the error or show an error message to the user if needed
+    }
+  };
+
   return (
     <Wrapper>
       <Title>Edit Profile</Title>
       <UnderLine />
       <Profile>
         <ProfileImage>Profile Image</ProfileImage>
-        <UserInfoImg src={UserInfo} />
+        <UserInfoImg src={selectedImage} />
+        <ChangeImg onClick={showModal}>프로필 변경</ChangeImg>
+        {modalOpen && (
+          <ImageModal
+            setModalOpen={setModalOpen}
+            onSelectImage={setSelectedImage} // 선택한 이미지를 EditProfile 컴포넌트의 selectedImage로 전달
+          />
+        )}
+        <NickName>Nickname</NickName>
+        <NickNameInput
+          value={nickname}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setNickname(e.target.value)
+          }
+        ></NickNameInput>
       </Profile>
+      <ButtonWrapper>
+        <Cancle onClick={goMypage}>취소</Cancle>
+        <Save onClick={handleProfileSave}>프로필 저장</Save>
+      </ButtonWrapper>
     </Wrapper>
   );
 }
@@ -29,6 +112,7 @@ const Profile = styled.div`
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  margin-top: 50px;
 `;
 
 const Title = styled.div`
@@ -55,10 +139,73 @@ const ProfileImage = styled.span`
   line-height: 100%;
   text-align: left;
   color: black;
+  align-items: flex-start;
+  display: flex;
+  width: 250px;
 `;
 const UserInfoImg = styled.img`
   width: 270px;
   height: 270px;
-  left: 0px;
-  top: 36px;ß
+  border-radius: 15px;
+  margin-top: 10px;
+`;
+
+const ChangeImg = styled.button`
+  width: 84px;
+  height: 30px;
+  border: 1px solid #8e8e8e;
+  border-radius: 7px;
+  color: #8e8e8e;
+  background-color: #fff;
+  cursor: pointer;
+  margin-top: 10px;
+`;
+const NickName = styled.span`
+  text-overflow: ellipsis;
+  font-size: 24px;
+  font-family: Quicksand, sans-serif;
+  font-weight: 500;
+  line-height: 100%;
+  color: black;
+  align-items: flex-start;
+  display: flex;
+  width: 250px;
+  margin-top: 50px;
+`;
+
+const NickNameInput = styled.input`
+  border: 1px solid black;
+  position: relative;
+  height: 30px;
+  width: 245px;
+  outline: none;
+  border-radius: 5px;
+  margin-top: 10px;
+`;
+
+const Cancle = styled.button`
+  width: 84px;
+  height: 30px;
+  border: 1px solid #8e8e8e;
+  border-radius: 7px;
+  color: #8e8e8e;
+  background-color: #fff;
+  cursor: pointer;
+  margin-right: 20px;
+`;
+const Save = styled.button`
+  width: 84px;
+  height: 30px;
+  border: 1px solid #bbe2ff;
+  border-radius: 7px;
+  color: #fff;
+  background-color: #84cbff;
+  cursor: pointer;
+`;
+
+const ButtonWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 40px;
 `;
