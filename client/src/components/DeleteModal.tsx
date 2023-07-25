@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { PasswordRegEx, PasswordMin, PasswordMax } from "../utils/Check";
 import { ErrorMsg } from "./commons/Input";
 import { Form } from "./commons/Form";
+import saveNewToken from "../utils/saveNewToken";
 
 type PropsType = {
   setModalOpen: (open: boolean) => void;
@@ -28,7 +29,7 @@ function DeleteModal({ setModalOpen }: PropsType) {
     const memberId = localStorage.getItem("memberId");
     const accessToken = localStorage.getItem("accessToken");
     const refresh = localStorage.getItem("refresh");
-    console.log(accessToken);
+
     await axios
       .delete(`${DeleteUser}/${memberId}`, {
         data: data,
@@ -38,56 +39,68 @@ function DeleteModal({ setModalOpen }: PropsType) {
         },
       })
       .then((response) => {
+        const access_Token = response.headers["authorization"] || null;
+        saveNewToken(access_Token);
         if (response.status === 200) {
           localStorage.removeItem("memberId");
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refresh");
           alert("정상적으로 탈퇴되었습니다.");
-          window.location.replace("/"); // 이동할 경로를 지정하세요
-        } else if (response.status === 401) {
-          alert("비밀번호를 확인해주세요.");
+          window.location.replace("/home");
         }
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        if (error.response.status === 404) {
+          alert("비밀번호가 일치하지 않습니다. 비밀번호를 확인해주세요.");
+        } else if (error.response.status === 500) {
+          alert("서버 에러가 발생했습니다. 잠시 후 시도해주세요.");
+        } else {
+          alert("다시 입력 해주세요.");
+        }
+      });
   };
 
   return (
-    <FadeIn>
-      <Container>
-        <ContentWrapper>
-          <Title>회원 탈퇴</Title>
-          <Content>본인 인증을 위해 비밀번호를 입력해주세요</Content>
-          <Form onSubmit={handleSubmit(handleConfirm)}>
-            <InputField
-              id="password"
-              type="password"
-              placeholder="password"
-              {...register("password", {
-                required: "비밀번호는 필수 입력입니다.",
-                minLength: {
-                  value: PasswordMin,
-                  message: "비밀번호는 최소 8자 이상이어야 합니다.",
-                },
-                maxLength: {
-                  value: PasswordMax,
-                  message: "비밀번호는 최대 16자 이하이어야 합니다.",
-                },
-                pattern: {
-                  value: PasswordRegEx,
-                  message:
-                    "비밀번호는 최소 영문자 1개와 숫자 1개가 포함되어야 합니다.",
-                },
-              })}
-            />
-            {errors.password && <ErrorMsg>{errors.password.message}</ErrorMsg>}
-            <ButtonWrapper>
-              <Cancle onClick={closeModal}>취소</Cancle>
-              <Confirm>탈퇴</Confirm>
-            </ButtonWrapper>
-          </Form>
-        </ContentWrapper>
-      </Container>
-    </FadeIn>
+    <ModalBackground>
+      <FadeIn>
+        <Container>
+          <ContentWrapper>
+            <Title>회원 탈퇴</Title>
+            <Content>본인 인증을 위해 비밀번호를 입력해주세요</Content>
+            <Form onSubmit={handleSubmit(handleConfirm)}>
+              <InputField
+                id="password"
+                type="password"
+                placeholder="password"
+                {...register("password", {
+                  required: "비밀번호는 필수 입력입니다.",
+                  minLength: {
+                    value: PasswordMin,
+                    message: "비밀번호는 최소 8자 이상이어야 합니다.",
+                  },
+                  maxLength: {
+                    value: PasswordMax,
+                    message: "비밀번호는 최대 16자 이하이어야 합니다.",
+                  },
+                  pattern: {
+                    value: PasswordRegEx,
+                    message:
+                      "비밀번호는 최소 영문자 1개와 숫자 1개가 포함되어야 합니다.",
+                  },
+                })}
+              />
+              {errors.password && (
+                <ErrorMsg>{errors.password.message}</ErrorMsg>
+              )}
+              <ButtonWrapper>
+                <Cancle onClick={closeModal}>취소</Cancle>
+                <Confirm>탈퇴</Confirm>
+              </ButtonWrapper>
+            </Form>
+          </ContentWrapper>
+        </Container>
+      </FadeIn>
+    </ModalBackground>
   );
 }
 
@@ -102,6 +115,17 @@ const fadeInAnimation = keyframes`
   }
 `;
 
+const ModalBackground = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
 const FadeIn = styled.div`
   animation: ${fadeInAnimation} 0.5s ease-in;
 `;
@@ -109,11 +133,6 @@ const FadeIn = styled.div`
 const Container = styled.div`
   width: 550px;
   height: 500px;
-  z-index: 999;
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   background-color: #fff;
   border: 1px solid black;
   border-radius: 15px;

@@ -55,7 +55,7 @@ public class MemberDto {
                 message = "닉네임은 2 ~ 7자 사이여야 합니다.")
         private String name;
 
-        private String profile;
+        private String profileUrl;
     }
 
     @Getter
@@ -63,6 +63,7 @@ public class MemberDto {
     public static class MyPageResponse {
         private String email;
         private String name;
+        private String profileUrl;
         private List<PlaylistDto.PublicResponse> musicLists;
     }
 
@@ -94,6 +95,7 @@ public class MemberDto {
     public static class LogInResponse {
         private long memberId;
         private String email;
+        private String role;
     }
 
     @Getter
@@ -103,6 +105,6 @@ public class MemberDto {
     public static class PatchResponse {
         private String email;
         private String name;
-        private String profile;
+        private String profileUrl;
     }
 }

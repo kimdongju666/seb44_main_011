@@ -45,9 +45,9 @@ public class SecurityConfiguration {
                         .loginPage("/public/oauth/login")
                         .userInfoEndpoint()
                         .userService(oAuth2MemberService)
-                                .and()
-                        .successHandler(new OAuth2SuccessHandler(delegateTokenService))
-                                .failureHandler(failureHandler())
+                        .and()
+                        .successHandler(successHandler())
+                        .failureHandler(failureHandler())
                 )
                 .apply(customFilterConfigurers())
 
@@ -58,6 +58,8 @@ public class SecurityConfiguration {
                         .antMatchers(HttpMethod.GET, "/api/**").hasRole("USER")
                         .antMatchers(HttpMethod.PATCH, "/api/**").hasRole("USER")
                         .antMatchers(HttpMethod.DELETE, "/api/**").hasRole("USER")
+//                        .antMatchers(HttpMethod.POST, "/admin/**").hasRole("ADMIN")
+//                        .antMatchers(HttpMethod.GET, "/admin/**").hasRole("ADMIN")
                         .antMatchers("/api/members/**").authenticated()
                         .anyRequest().permitAll()
                 );
@@ -73,12 +75,17 @@ public class SecurityConfiguration {
     public OAuth2FailureHandler failureHandler(){
         return new OAuth2FailureHandler();
     }
+    @Bean
+    public OAuth2SuccessHandler successHandler(){
+        return new OAuth2SuccessHandler(delegateTokenService);
+    }
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:3000", "http://localhost:5173","http://172.17.0.3:5173","http://ec2-3-35-216-90.ap-northeast-2.compute.amazonaws.com"));
+        configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:3000", "http://localhost:5173","http://172.17.0.3:5173","http://ec2-3-35-216-90.ap-northeast-2.compute.amazonaws.com",
+                                "https://api.petpil.site:8080","https://on.petpil.site"));
         configuration.setAllowedMethods(List.of("*"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("*"));
@@ -88,4 +95,6 @@ public class SecurityConfiguration {
 
         return source;
     }
+    //"http://localhost:8080", "http://localhost:3000", "http://localhost:5173","http://172.17.0.3:5173","http://ec2-3-35-216-90.ap-northeast-2.compute.amazonaws.com",
+    //                "https://api.petpil.site:8080","https://on.petpil.site"
 }

@@ -5,7 +5,6 @@ import { ReactComponent as DeleteIcon } from "../assets/icons/deleteicon.svg";
 import { Music } from "../types/Music";
 import Empty from "./Empty";
 import Profile from "./commons/Profile";
-import testImg from "../assets/imgs/testimg.jpg";
 import Loading from "./commons/Loading";
 import { BaseURL } from "../utils/Url";
 import axios from "axios";
@@ -77,6 +76,7 @@ type MusicListProps = {
   isTopChart?: string;
   loading?: boolean;
   setIsLikedClick: (value: boolean) => void;
+  selectedMusicId?: number;
 };
 
 export const MusicList: React.FC<MusicListProps> = ({
@@ -87,20 +87,19 @@ export const MusicList: React.FC<MusicListProps> = ({
   isTopChart,
   loading,
   setIsLikedClick,
+  selectedMusicId,
 }) => {
-  const [clickedMusicId, setClickedMusicId] = useState<number | null>(null);
   const [active, setActive] = useState(true);
 
   const handleLikeClick = (musicId: number, liked?: boolean) => {
     handleLike(musicId, liked);
   };
 
-  const memberId = localStorage.getItem("memberId");
+  const role = localStorage.getItem("role");
 
   const handleMusicClick = (musicId: number) => {
     if (handleMusic) {
       handleMusic(musicId);
-      setClickedMusicId(musicId);
       setActive(true);
     }
   };
@@ -136,9 +135,14 @@ export const MusicList: React.FC<MusicListProps> = ({
           <StyledMusicList
             key={music.musicId}
             onClick={() => handleMusicClick(music.musicId)}
-            $active={clickedMusicId === music.musicId && active}
+            $active={selectedMusicId === music.musicId && active}
           >
-            <Profile image={testImg} size={40} radius={4} alt={"Cover Image"} />
+            <Profile
+              image={music.image_url}
+              size={40}
+              radius={4}
+              alt={"Cover Image"}
+            />
             <Title>{music.title}</Title>
             <Tag>{music.tags}</Tag>
             <span>{music.playtime}</span>
@@ -154,7 +158,7 @@ export const MusicList: React.FC<MusicListProps> = ({
                   stroke={music.liked ? "none" : "#212121"}
                 />
               </Button>
-              {memberId === "30" && (
+              {role === "ADMIN" && (
                 <Button
                   onClick={(event: React.MouseEvent) => {
                     event.stopPropagation();

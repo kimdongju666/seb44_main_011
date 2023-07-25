@@ -25,8 +25,9 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false)
     private String name;
 
+    @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
-    private String profile;
+    private Profile profile;
 
     @Enumerated(value = EnumType.STRING)
     @Column(nullable = false)
@@ -45,11 +46,30 @@ public class Member extends BaseTimeEntity {
         this.email = email;
         this.password = password;
         this.name = name;
-        this.profile = "기본 프로필 이미지";
+        this.profile = Profile.DOG1;
         this.status = Status.MEMBER_ACTIVE;
         this.playLists = new ArrayList<>();
         this.oAuthCheck = OAuthCheck.NO_OAUTH;
     }
+
+    public enum Profile {
+        DOG1("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/dogs/dog1.jpg"),
+        DOG2("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/dogs/dog2.jpg"),
+        DOG3("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/dogs/dog3.jpg"),
+        DOG4("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/dogs/dog4.jpg"),
+        CAT1("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/cats/cat1.png"),
+        CAT2("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/cats/cat2.png"),
+        CAT3("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/cats/cat3.jpg"),
+        CAT4("https://main-project-file.s3.ap-northeast-2.amazonaws.com/profile/cats/cat4.jpg");
+
+        @Getter
+        private final String profileUrl;
+
+        Profile(String profileUrl) {
+            this.profileUrl = profileUrl;
+        }
+    }
+
 
     public enum Status {
         MEMBER_ACTIVE("활성 상태"),
@@ -67,6 +87,7 @@ public class Member extends BaseTimeEntity {
         GOOGLE("GOOGLE"),
         NAVER("NAVER"),
         KAKAO("KAKAO"),
+        FACEBOOK("FACEBOOK"),
         NO_OAUTH("No_OAuth_Member");
 
         @Getter
@@ -89,7 +110,7 @@ public class Member extends BaseTimeEntity {
         this.name = name;
     }
 
-    public void updateProfile(String profile) {
+    public void updateProfile(Profile profile) {
         this.profile = profile;
     }
 

@@ -13,6 +13,9 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { PostLogin } from "../utils/Url";
 import { Form } from "../components/commons/Form";
+import { useDispatch } from "react-redux";
+import { loginUser } from "../redux/UserInfo";
+
 type FormValues = {
   email: string;
   password: string;
@@ -21,6 +24,8 @@ type Response = {
   memberId: string;
   Authorization: string;
   Refresh: string;
+  email: string;
+  role: string;
 };
 function Login() {
   const {
@@ -28,21 +33,53 @@ function Login() {
     handleSubmit,
     formState: { errors },
   } = useForm<FormValues>({ mode: "onBlur" });
+
+  const dispatch = useDispatch();
+
   const onSubmit = async (data: FormValues) => {
-    console.log("로그인 데이터:", data);
     await axios
       .post<Response>(PostLogin, data)
       .then((response) => {
-        console.log(response.headers);
         const accessToken = response.headers["authorization"] || null;
         const refresh = response.headers["refresh"] || null;
         const memberId = response.data["memberId"];
+        const role = response.data["role"];
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refresh", refresh);
         localStorage.setItem("memberId", memberId);
+        localStorage.setItem("role", role);
+        dispatch(loginUser(response.data));
         window.location.replace("/home");
       })
-      .catch((error) => console.log(error));
+      .catch((error) => {
+        if (error.response.status === 401) {
+          if (
+            error.response.data.message === "Invalid credentials : Unauthorized"
+          ) {
+            alert("잘못된 비밀번호입니다. 다시 입력해주세요.");
+          } else if (
+            error.response.data.message === "Member not found : Unauthorized"
+          ) {
+            alert("등록되지 않은 사용자입니다. 이메일을 다시 입력해주세요");
+          } else if (
+            error.response.data.message ===
+            "This email already used in OAuth2 : Unauthorized"
+          ) {
+            alert(
+              "이미 OAuth로 가입된 사용자입니다. OAuth를 이용해 로그인 해주세요."
+            );
+          } else if (
+            error.response.data.message ===
+            "Already with drawn Member : Unauthorized"
+          ) {
+            alert("이미 탈퇴한 사용자입니다. 회원가입을 진행해주세요.");
+          }
+        } else if (error.response.status === 500) {
+          alert("서버 에러가 발생했습니다. 잠시 후 시도해주세요.");
+        } else {
+          alert("다시 로그인을 진행해주세요.");
+        }
+      });
   };
   return (
     <Modal>

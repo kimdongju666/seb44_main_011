@@ -1,20 +1,18 @@
 import { ReactComponent as HomeIcon } from "../../src/assets/icons/home.svg";
-import { ReactComponent as TagsIcon } from "../../src/assets/icons/tags.svg";
 import { ReactComponent as MylistIcon } from "../../src/assets/icons/mylist.svg";
 import { ReactComponent as MypageIcon } from "../../src/assets/icons/mypage.svg";
 import { ReactComponent as SearchIcon } from "../../src/assets/icons/search.svg";
-import DogLogo from "../../src/assets/imgs/doglogo.png";
-import CatLogo from "../../src/assets/imgs/catlogo.png";
+import DogLogo from "../../src/assets/imgs/doglogo.svg";
+import CatLogo from "../../src/assets/imgs/catlogo.svg";
 import { ReactComponent as More } from "../assets/icons/more.svg";
 import { keyframes, styled } from "styled-components";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { SetStateAction, useEffect, useRef, useState } from "react";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../redux/RootStore";
 import { setCurrentTag } from "../redux/tagSlice";
-
 interface NavItemProps {
   isActive: boolean;
 }
@@ -23,29 +21,33 @@ interface ViewMoreProps {
 }
 
 function SideNav() {
-  const [isTagsMenuOpen, setIsTagsMenuOpen] = useState(false); // 드롭다운 메뉴가 열려있는지 여부를 저장하는 상태 변수
-  const [currentMenu, setCurrentMenu] = useState<string>("hello");
+  const [isTagsMenuOpen, setIsTagsMenuOpen] = useState(false);
+  const location = useLocation();
+  //path parameter를 통해서 최신 메뉴 확인, /부분은 제거
+  const [currentMenu, setCurrentMenu] = useState<string>(
+    location.pathname.substring(1)
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [Signmodal, setSignModal] = useState(false);
-  //검색기능
   const [searchQuery, setSearchQuery] = useState("");
-  // 검색 결과 상태
-  const [searchResults, setSearchResults] = useState([]);
   const modalRef = useRef(null);
   const isLogin = localStorage.getItem("memberId");
-  const location = useLocation();
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const isDogpli = useSelector((state: RootState) => state.home.isDogpli);
-  // const currentTag = useSelector((state: RootState) => state.tags.currentTag); 클릭한 태그 글자 색 변경시 사용하시면 돼요
-  const handleClickMenu = (e: any) => {
+  const currentTag = useSelector((state: RootState) => state.tags.currentTag);
+  const handleClickMenu = (e: {
+    currentTarget: { id: SetStateAction<string> };
+  }) => {
     setCurrentMenu(e.currentTarget.id);
   };
 
   const handleTagsMenuClick = () => {
-    setIsTagsMenuOpen((prev) => !prev); // 메뉴 열기/닫기 토글
+    setIsTagsMenuOpen((prev) => !prev);
+    dispatch(setCurrentTag(""));
   };
-  // 드롭다운 메뉴를 닫는 함수
+
   const closeDropdownMenu = () => {
     setIsTagsMenuOpen(false);
   };
@@ -54,7 +56,6 @@ function SideNav() {
     closeDropdownMenu();
   }, [location.pathname]);
 
-  //로그인 회원가입 모달 부분
   const showLoginModal = () => {
     setModalOpen(!modalOpen);
   };
@@ -65,7 +66,8 @@ function SideNav() {
     localStorage.removeItem("memberId");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refresh");
-    window.location.replace("/");
+    localStorage.removeItem("role");
+    window.location.replace("/home");
   };
   const modalSideClick = (e: React.MouseEvent | React.TouchEvent) => {
     if (modalRef.current === e.target) {
@@ -78,31 +80,37 @@ function SideNav() {
     }
   };
 
-  const Navigate = (data: string) => {
+  const Navigate = (data: string, e: React.MouseEvent) => {
     const memberId = localStorage.getItem("memberId");
-    if (memberId !== null) navigate(`/${data}`);
-    else alert("로그인이 필요한 페이지입니다.");
+    if (memberId !== null) {
+      navigate(`/${data}`);
+      setCurrentMenu(e.currentTarget.id);
+    } else alert("로그인이 필요한 페이지입니다.");
   };
 
-  // 검색어 입력 이벤트 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  // 엔터키 입력 시 검색 결과 가져오기
-  const handleSearchEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchEnter = async (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (e.key === "Enter") {
-      // 검색 결과를 가져오는 로직을 추가
-      // 예를 들어, 서버에 검색어를 보내고 결과를 받아와서 setSearchResults로 상태 업데이트
-      // setSearchResults([...results]); // 가져온 검색 결과를 상태에 업데이트
+      e.preventDefault();
       if (searchQuery.trim() !== "") {
-        // Search 페이지로 이동하면서 검색어를 쿼리 파라미터로 전달
-        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+        try {
+          navigate(`/search?title=${encodeURIComponent(searchQuery)}`, {
+            state: { searchQuery },
+          });
+        } catch (error) {
+          console.error("Error while searching:", error);
+        }
       }
     }
   };
 
   const handleTagClick = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
     const id = (event.target as HTMLElement).id;
     dispatch(setCurrentTag(id));
   };
@@ -112,12 +120,12 @@ function SideNav() {
       <RootWrapper>
         <NavWrapper>
           <UlWrapper>
-            <Link className="logo" to="/home">
+            <LogoLink className="logo" to="/home">
               <LogoImg
                 src={isDogpli === "dog" ? DogLogo : CatLogo}
                 alt="Logo"
               />
-            </Link>
+            </LogoLink>
             <SearchField>
               <SearchImg fill="#B4B4B7" />
               <InputField
@@ -128,7 +136,68 @@ function SideNav() {
               ></InputField>
             </SearchField>
             <LiStyle>
-              <LiWrapper>
+              <HomeWrapper onClick={handleTagsMenuClick}>
+                <NavHome
+                  id="home"
+                  onClick={handleClickMenu}
+                  isActive={currentMenu === "/home"}
+                >
+                  <HomeLink className="home" to="home">
+                    <HomeImg
+                      fill={currentMenu === "home" ? "#84CBFF" : "#B4B4B7"}
+                    />
+                    <HomeText isActive={currentMenu === "home"}>
+                      {"Home"}
+                    </HomeText>
+                    <ViewMore
+                      fill={currentMenu === "home" ? "#84CBFF" : "#B4B4B7"}
+                      rotated={isTagsMenuOpen}
+                    />
+                  </HomeLink>
+                </NavHome>
+                <DropdownMenu hidden={!isTagsMenuOpen}>
+                  <MenuItem
+                    id="calm"
+                    onClick={handleTagClick}
+                    style={{
+                      color: currentTag === "calm" ? "var(--black)" : "inherit",
+                    }}
+                  >
+                    CALM
+                  </MenuItem>
+                  <MenuItem
+                    id="relaxing"
+                    onClick={handleTagClick}
+                    style={{
+                      color:
+                        currentTag === "relaxing" ? "var(--black)" : "inherit",
+                    }}
+                  >
+                    RELAXING
+                  </MenuItem>
+                  <MenuItem
+                    id="upbeat"
+                    onClick={handleTagClick}
+                    style={{
+                      color:
+                        currentTag === "upbeat" ? "var(--black)" : "inherit",
+                    }}
+                  >
+                    UPBEAT
+                  </MenuItem>
+                  <MenuItem
+                    id="serene"
+                    onClick={handleTagClick}
+                    style={{
+                      color:
+                        currentTag === "serene" ? "var(--black)" : "inherit",
+                    }}
+                  >
+                    SERENE
+                  </MenuItem>
+                </DropdownMenu>
+              </HomeWrapper>
+              <HomeWrapper2>
                 <NavHome
                   id="home"
                   onClick={handleClickMenu}
@@ -138,52 +207,16 @@ function SideNav() {
                     <HomeImg
                       fill={currentMenu === "home" ? "#84CBFF" : "#B4B4B7"}
                     />
-                    <HomeText isActive={currentMenu === "home"}>
-                      {"Home"}
-                    </HomeText>
                   </HomeLink>
                 </NavHome>
-              </LiWrapper>
-              <LiWrapper onClick={handleTagsMenuClick}>
-                <NavTags
-                  id="tags"
-                  onClick={handleClickMenu}
-                  isActive={currentMenu === "tags"}
-                >
-                  <TagImg
-                    fill={currentMenu === "tags" ? "#84CBFF" : "#B4B4B7"}
-                  />
-                  <TagText isActive={currentMenu === "tags"}>{"Tags"}</TagText>
-                  <ViewMore
-                    fill={currentMenu === "tags" ? "#84CBFF" : "#B4B4B7"}
-                    rotated={isTagsMenuOpen}
-                  />
-                </NavTags>
-                <DropdownMenu hidden={!isTagsMenuOpen}>
-                  <MenuItem id="calm" onClick={handleTagClick}>
-                    CALM
-                  </MenuItem>
-                  <MenuItem id="realxing" onClick={handleTagClick}>
-                    RELAXING
-                  </MenuItem>
-                  <MenuItem id="upbeat" onClick={handleTagClick}>
-                    UPBEAT
-                  </MenuItem>
-                  <MenuItem id="serene" onClick={handleTagClick}>
-                    SERENE
-                  </MenuItem>
-                </DropdownMenu>
-              </LiWrapper>
+              </HomeWrapper2>
               <LiWrapper>
                 <NavMylist
                   id="mylist"
-                  onClick={handleClickMenu}
                   isActive={currentMenu === "mylist"}
+                  onClick={(e: React.MouseEvent) => Navigate("mylist", e)}
                 >
-                  <SideDiv
-                    className="mylist"
-                    onClick={() => Navigate("mylist")}
-                  >
+                  <SideDiv className="mylist">
                     <MyListImg
                       fill={currentMenu === "mylist" ? "#84CBFF" : "#B4B4B7"}
                     />
@@ -193,16 +226,13 @@ function SideNav() {
                   </SideDiv>
                 </NavMylist>
               </LiWrapper>
-              <LiWrapper onClick={() => Navigate("mypage")}>
+              <LiWrapper>
                 <NavMyPage
                   id="mypage"
-                  onClick={handleClickMenu}
                   isActive={currentMenu === "mypage"}
+                  onClick={(e: React.MouseEvent) => Navigate("mypage", e)}
                 >
-                  <SideDiv
-                    className="mypage"
-                    onClick={() => Navigate("mypage")}
-                  >
+                  <SideDiv className="mypage">
                     <MypageImg
                       fill={currentMenu === "mypage" ? "#84CBFF" : "#B4B4B7"}
                     />
@@ -213,20 +243,28 @@ function SideNav() {
                 </NavMyPage>
               </LiWrapper>
             </LiStyle>
-
-            <ButtonWrapper>
-              {isLogin ? (
-                <>
-                  <Logout onClick={() => logout()}>LOGOUT</Logout>
-                </>
-              ) : (
-                <>
-                  <Login1 onClick={() => showLoginModal()}>LOGIN</Login1>
-                  <Signup onClick={() => showSignModal()}>SIGNUP</Signup>
-                </>
-              )}
-            </ButtonWrapper>
+            <SearchField2>
+              <SearchImg fill="#B4B4B7" />
+              <InputField
+                type="text"
+                value={searchQuery}
+                onChange={handleInputChange}
+                onKeyDown={handleSearchEnter}
+              ></InputField>
+            </SearchField2>
           </UlWrapper>
+          <ButtonWrapper>
+            {isLogin ? (
+              <>
+                <Logout onClick={() => logout()}>LOGOUT</Logout>
+              </>
+            ) : (
+              <>
+                <Login1 onClick={() => showLoginModal()}>LOGIN</Login1>
+                <Signup onClick={() => showSignModal()}>SIGNUP</Signup>
+              </>
+            )}
+          </ButtonWrapper>
         </NavWrapper>
       </RootWrapper>
       {modalOpen && (
@@ -236,7 +274,11 @@ function SideNav() {
       )}
       {Signmodal && (
         <ModalBackground ref={modalRef} onClick={modalSideClick2}>
-          <SignUp />
+          <SignUp
+            ref={modalRef}
+            onClick2={modalSideClick2}
+            onClick={modalSideClick}
+          />
         </ModalBackground>
       )}
     </>
@@ -259,49 +301,94 @@ const RootWrapper = styled.div`
   border: solid 1px rgba(255, 255, 255, 0.16);
   position: fixed;
   box-shadow: 0px 4px 5px 2px rgba(217, 217, 217, 0.5);
-  width: 245px;
-  height: 100vh;
-  min-width: 245px;
-  max-width: 350px;
+  width: 260px;
+  height: -webkit-fill-available;
   display: flex;
   justify-content: center;
+  padding: 4vh 0;
+  font-family: var(--font-quicksand);
+  min-height: fit-content;
+
+  @media screen and (max-width: 800px) {
+    width: 100%;
+    height: 40px;
+    position: relative;
+    padding: 2vh 0;
+    align-items: center;
+  }
 `;
 const NavWrapper = styled.nav`
   display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  @media screen and (max-width: 800px) {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: normal;
+  }
 `;
 const UlWrapper = styled.ul`
   list-style: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
-  margin-top: 50px;
+  row-gap: 24px;
+  @media screen and (max-width: 800px) {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+  }
 `;
-const HomeLink = styled(Link)`
+
+const LogoLink = styled(Link)`
   display: flex;
-  align-items: center;
+  justify-content: center;
+  height: 80px;
+  align-items: baseline;
+  @media screen and (max-width: 800px) {
+    display: none;
+  }
 `;
+
 const LogoImg = styled.img`
-  // width: 90px;
-  // height: 90px;
+  align-self: center;
+  width: 135px;
 `;
+
 const SearchField = styled.div`
-  overflow: hidden;
   background-color: white;
   border-radius: 100px;
   display: flex;
   align-items: center;
-  margin-top: 20px;
+  @media screen and (max-width: 800px) {
+    display: none;
+  }
+`;
+const SearchField2 = styled.div`
+  background-color: white;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  @media screen and (min-width: 800px) {
+    display: none;
+  }
 `;
 const InputField = styled.input`
   border: none;
   height: 30px;
-  width: 139px;
   outline: none;
   border-radius: 20px;
   padding-left: 40px;
   &:focus {
     border: 2px solid #84cbff;
+  }
+  @media screen and (max-width: 800px) {
+    width: 100%;
+    height: 40px;
+    border-radius: 100px;
   }
 `;
 const SearchImg = styled(SearchIcon)`
@@ -314,6 +401,14 @@ const LiStyle = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  margin-left: 12px;
+  gap: 24px;
+  @media screen and (max-width: 800px) {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 12px;
+    gap: 10px;
+  }
 `;
 const LiWrapper = styled.li`
   display: flex;
@@ -322,21 +417,56 @@ const LiWrapper = styled.li`
   a {
     text-decoration: none;
   }
-  margin-top: 20px;
 `;
-const TagImg = styled(TagsIcon)`
-  margin-right: 10px;
+
+const HomeWrapper = styled.li`
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  a {
+    text-decoration: none;
+  }
+  @media screen and (max-width: 800px) {
+    display: none;
+  }
 `;
+const HomeWrapper2 = styled.li`
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  a {
+    text-decoration: none;
+  }
+  @media screen and (max-width: 800px) {
+    width: 32px;
+  }
+  @media screen and (min-width: 800px) {
+    display: none;
+  }
+`;
+
+const HomeLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    > span {
+      color: var(--gray-500);
+    }
+    > svg {
+      fill: var(--gray-500);
+    }
+  }
+`;
+
 const ViewMore = styled(More)<ViewMoreProps>`
-  width: 30px;
-  height: 30px;
+  height: 18px;
+  width: 18px;
   transform: ${(props) => (props.rotated ? "rotate(180deg)" : "rotate(0)")};
   transition: transform 0.2s ease;
-  margin-left: 20px;
 `;
-const HomeImg = styled(HomeIcon)`
-  margin-right: 10px;
-`;
+const HomeImg = styled(HomeIcon)``;
 const HomeText = styled.span<NavItemProps>`
   text-overflow: ellipsis;
   font-size: 18px;
@@ -346,15 +476,7 @@ const HomeText = styled.span<NavItemProps>`
   text-decoration: none;
   color: ${(props) => (props.isActive ? "#84CBFF" : "#B4B4B7")};
 `;
-const TagText = styled.span<NavItemProps>`
-  text-overflow: ellipsis;
-  font-size: 18px;
-  font-family: Quicksand, sans-serif;
-  font-weight: 700;
-  line-height: 100%;
-  text-decoration: none;
-  color: ${(props) => (props.isActive ? "#84CBFF" : "#B4B4B7")};
-`;
+
 const MyListImg = styled(MylistIcon)`
   margin-right: 10px;
 `;
@@ -367,6 +489,9 @@ const MylistText = styled.span<NavItemProps>`
   text-align: left;
   text-decoration: none;
   color: ${(props) => (props.isActive ? "#84CBFF" : "#B4B4B7")};
+  @media screen and (max-width: 800px) {
+    display: none;
+  }
 `;
 const MypageImg = styled(MypageIcon)`
   margin-right: 10px;
@@ -380,39 +505,41 @@ const MypageText = styled.span<NavItemProps>`
   text-align: left;
   text-decoration: none;
   color: ${(props) => (props.isActive ? "#84CBFF" : "#B4B4B7")};
+  @media screen and (max-width: 800px) {
+    display: none;
+  }
 `;
 
 const NavHome = styled.div<NavItemProps>``;
 const NavMylist = styled.div<NavItemProps>``;
 const NavMyPage = styled.div<NavItemProps>``;
-const NavTags = styled.div<NavItemProps>`
-  display: flex;
-  align-items: center;
-`;
 
 const DropdownMenu = styled.div`
-  position: absolute;
-  top: 23%;
-  left: 0;
-  width: 100%;
+  width: fit-content;
   border-radius: 4px;
-  background-color: rgb(240, 243, 243);
   // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
   display: ${(props) =>
     props.hidden ? "none" : "flex"}; // hidden 속성으로 메뉴 숨기기/보이기
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: start;
+  align-items: start;
+  row-gap: 16px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #c8c7c7;
 `;
 
 const MenuItem = styled.div`
-  padding: 8px 16px;
-  color: var(--black);
+  padding: 0px 16px;
   cursor: pointer;
 
   &:hover {
-    background-color: var(--gray-100);
+    color: var(--gray-400);
+  }
+
+  &:active {
+    color: var(--black);
   }
 `;
 
@@ -420,6 +547,15 @@ const SideDiv = styled.div`
   cursor: pointer;
   display: flex;
   align-items: center;
+
+  &:hover {
+    > span {
+      color: var(--gray-500);
+    }
+    > svg {
+      fill: var(--gray-500);
+    }
+  }
 `;
 
 const ModalBackground = styled.div`
@@ -434,10 +570,19 @@ const ModalBackground = styled.div`
   animation: ${fadeInAnimation} 0.5s ease-in;
 `;
 const ButtonWrapper = styled.div`
-  width: 185px;
+  width: 100%;
   height: 40px;
   display: flex;
-  margin-top: 450px;
+  align-items: center;
+  justify-content: center;
+  @media screen and (max-width: 800px) {
+    width: 120px;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    margin-left: 15px;
+    margin-right: 15px;
+  }
 `;
 const Logout = styled.button`
   border: solid 1px rgb(209, 209, 209);
@@ -453,6 +598,9 @@ const Logout = styled.button`
   cursor: pointer;
   width: 185px;
   height: 40px;
+  @media screen and (max-width: 800px) {
+    width: 80px;
+  }
 `;
 const Login1 = styled.button`
   border: solid 1px #84cbff;
@@ -469,6 +617,10 @@ const Login1 = styled.button`
   width: 88px;
   height: 40px;
   margin-right: 10px;
+  @media screen and (max-width: 800px) {
+    width: 55px;
+    font-size: 13px;
+  }
 `;
 const Signup = styled.button`
   border: solid 1px #84cbff;
@@ -484,4 +636,11 @@ const Signup = styled.button`
   cursor: pointer;
   width: 88px;
   height: 40px;
+  @media screen and (max-width: 800px) {
+    width: 55px;
+    font-size: 13px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 `;

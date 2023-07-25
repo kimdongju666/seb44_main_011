@@ -1,32 +1,22 @@
 import { useEffect, useState } from "react";
 import { styled } from "styled-components";
-import UserInfo from "../assets/imgs/UserInfo.png";
 import { useNavigate } from "react-router-dom";
 import DeleteModal from "./DeleteModal";
-// import EditProfile from "./EditProfile";
+import { api } from "../utils/Url";
+import Default from "../assets/imgs/Default.jpg";
+import saveNewToken from "../utils/saveNewToken";
 
-// type PropsType = {
-//   selectedImage: string;
-// };
+const defaultImage = { Default };
 
 export function MypageInfo() {
   const navigate = useNavigate();
-  const [nickname, setNickname] = useState<string>("");
-  const [selectedImage, setSelectedImage] = useState<string>("");
-  console.log("selectedImage:", selectedImage);
-  console.log("nickname:", nickname);
 
-  useEffect(() => {
-    // 컴포넌트가 마운트될 때에만 실행되도록 useEffect를 사용하여 nickname 값을 localStorage에서 불러옵니다.
-    const storedNickname = localStorage.getItem("nickname");
-    const storedImage = localStorage.getItem("selectedImage");
-    if (storedNickname && storedImage) {
-      setNickname(storedNickname);
-      setSelectedImage(storedImage);
-    }
-  }, []);
+  const role = localStorage.getItem("role");
 
   const memberId = localStorage.getItem("memberId");
+  const [selectedImage, setSelectedImage] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
 
   const handleBtnEdit = () => {
     navigate("/mypage/edit");
@@ -42,15 +32,31 @@ export function MypageInfo() {
     setModalOpen(true);
   };
 
+  useEffect(() => {
+    api
+      .get(`/members/my-page/${memberId}`)
+      .then((response) => {
+        const accessToken = response.headers["authorization"] || null;
+        saveNewToken(accessToken);
+        const data = response.data;
+        setSelectedImage(data.profileUrl || defaultImage);
+        setNickname(data.name);
+        setEmail(data.email);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, []);
+
   return (
     <Wrapper>
       <UserInfoImg src={selectedImage} />
       <Profile>
         <UserName>{nickname}</UserName>
-        <UserEmail>firerock@naver.com</UserEmail>
+        <UserEmail>{email}</UserEmail>
         <ButtonWrapper>
           <ProfileBtn onClick={handleBtnEdit}>프로필수정</ProfileBtn>
-          {memberId === "30" ? (
+          {role === "ADMIN" ? (
             <UploadBtn onClick={handleBtnUpload}>음악업로드</UploadBtn>
           ) : (
             <DeleteBtn onClick={showModal}>회원탈퇴</DeleteBtn>
