@@ -22,6 +22,7 @@ function ImageModal({ setModalOpen, onSelectImage }: PropsType) {
       const accessToken = response.headers["authorization"] || null;
       saveNewToken(accessToken);
       setImageData(data);
+      console.log(data);
     } catch (error) {
       console.error("이미지 데이터를 가져오는데 에러가 발생했습니다:", error);
     }
